@@ -1,3 +1,9 @@
+#!/usr/bin/env node
+"use strict";
+
+const { greetings } = require("geeck_brains_student_homework_package");
+console.log(greetings());
+
 const http = require("http");
 const url = require("url");
 

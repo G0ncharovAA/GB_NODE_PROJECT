@@ -1,0 +1,22 @@
+{
+  "name": "gb_node_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/G0ncharovAA/GB_NODE_PROJECT.git"
+  },
+  "author": "Sasha Inverse",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/G0ncharovAA/GB_NODE_PROJECT/issues"
+  },
+  "homepage": "https://github.com/G0ncharovAA/GB_NODE_PROJECT#readme",
+  "dependencies": {
+    "geeck_brains_student_homework_package": "^1.0.0"
+  }
+}
