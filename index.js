@@ -1,42 +1,47 @@
-#!/usr/bin/env node
-"use strict";
+const express = require('express');
+const fs = require('fs').promises;
+const ejs = require('ejs');
 
-const { greetings } = require("geeck_brains_student_homework_package");
-console.log(greetings());
+const app = express();
+const PORT = 3000;
+const dataFilePath = 'page_views.json';
 
-const http = require("http");
-const url = require("url");
+// Middleware для обработки счетчика просмотров
+const pageViewsMiddleware = async (req, res, next) => {
+  try {
+    let data = await fs.readFile(dataFilePath, 'utf-8');
+    data = JSON.parse(data);
+    const url = req.originalUrl;
 
-let homePageCounter = 0;
-let aboutPageCounter = 0;
+    if (data[url]) {
+      data[url] += 1;
+    } else {
+      data[url] = 1;
+    }
 
-const server = http.createServer((req, res) => {
-  const parsedUrl = url.parse(req.url, true);
-
-  if (parsedUrl.pathname === "/") {
-    homePageCounter++;
-
-    res.writeHead(200, { "Content-Type": "text/html" });
-    res.write(`<h1>Welcome to the Home Page</h1>`);
-    res.write(`<p>Number of visits: ${homePageCounter}</p>`);
-    res.write(`<a href="/about">About Page</a>`);
-    res.end();
-  } else if (parsedUrl.pathname === "/about") {
-    aboutPageCounter++;
-
-    res.writeHead(200, { "Content-Type": "text/html" });
-    res.write(`<h1>Welcome to the About Page</h1>`);
-    res.write(`<p>Number of visits: ${aboutPageCounter}</p>`);
-    res.write(`<a href="/">Home Page</a>`);
-    res.end();
-  } else {
-    res.writeHead(404, { "Content-Type": "text/plain" });
-    res.write(`404 Not Found`);
-    res.end();
+    await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
+    next();
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
   }
+};
+
+app.use(pageViewsMiddleware);
+app.set('view engine', 'ejs');
+
+app.get('/', async (req, res) => {
+  const data = JSON.parse(await fs.readFile(dataFilePath, 'utf-8'));
+  const homePageViews = data['/'] || 0;
+  res.render('index', { title: 'Главная страница', views: homePageViews, link: 'О нас', href: '/about' });
 });
 
-const port = 3000;
-server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+app.get('/about', async (req, res) => {
+  const data = JSON.parse(await fs.readFile(dataFilePath, 'utf-8'));
+  const aboutPageViews = data['/about'] || 0;
+  res.render('about', { title: 'О нас', views: aboutPageViews, link: 'Главная страница', href: '/' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Сервер запущен на порту ${PORT}`);
 });
