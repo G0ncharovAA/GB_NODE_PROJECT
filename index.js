@@ -1,47 +1,78 @@
-const express = require('express');
-const fs = require('fs').promises;
-const ejs = require('ejs');
+const express = require("express");
+const fs = require("fs");
+const Joi = require("joi");
 
 const app = express();
 const PORT = 3000;
-const dataFilePath = 'page_views.json';
 
-// Middleware для обработки счетчика просмотров
-const pageViewsMiddleware = async (req, res, next) => {
-  try {
-    let data = await fs.readFile(dataFilePath, 'utf-8');
-    data = JSON.parse(data);
-    const url = req.originalUrl;
+app.use(express.json());
 
-    if (data[url]) {
-      data[url] += 1;
-    } else {
-      data[url] = 1;
-    }
+const filePath = "./users.json";
 
-    await fs.writeFile(dataFilePath, JSON.stringify(data, null, 2), 'utf-8');
-    next();
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Internal Server Error');
-  }
-};
-
-app.use(pageViewsMiddleware);
-app.set('view engine', 'ejs');
-
-app.get('/', async (req, res) => {
-  const data = JSON.parse(await fs.readFile(dataFilePath, 'utf-8'));
-  const homePageViews = data['/'] || 0;
-  res.render('index', { title: 'Главная страница', views: homePageViews, link: 'О нас', href: '/about' });
+const userSchema = Joi.object({
+  name: Joi.string().required(),
+  secondName: Joi.string().required(),
+  city: Joi.string().required(),
+  age: Joi.number().integer().min(0).required(),
 });
 
-app.get('/about', async (req, res) => {
-  const data = JSON.parse(await fs.readFile(dataFilePath, 'utf-8'));
-  const aboutPageViews = data['/about'] || 0;
-  res.render('about', { title: 'О нас', views: aboutPageViews, link: 'Главная страница', href: '/' });
+app.get("/users", (req, res) => {
+  const users = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  res.json(users);
+});
+
+app.post("/users", (req, res) => {
+  const { error } = userSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+  const users = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  const maxId = Math.max(users.map((user) => user.id));
+  const newUser = {
+    id: maxId + 1,
+    name: req.body.name,
+    secondName: req.body.secondName,
+    city: req.body.city,
+    age: req.body.age,
+  };
+
+  users.push(newUser);
+  fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+  res.json({ id: newUser.id });
+});
+
+app.put("/users/:id", (req, res) => {
+  const { error } = userSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ error: error.details[0].message });
+  }
+  const userId = req.params.id;
+  const users = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  const userExists = users.some((user) => user.id === userId);
+  if (!userExists) {
+    res.status(404).json({ error: "User not found" });
+  } else {
+    users.forEach((user) => {
+      if (user.id === userId) {
+        user.name = req.body.name;
+        user.secondName = req.body.secondName;
+        user.city = req.body.city;
+        user.age = req.body.age;
+      }
+    });
+    fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+    res.json(users);
+  }
+});
+
+app.delete("/users/:id", (req, res) => {
+  const userId = req.params.id;
+  const users = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+  const updatedUsers = users.filter((user) => user.id !== userId);
+  fs.writeFileSync(filePath, JSON.stringify(updatedUsers, null, 2));
+  res.json(updatedUsers);
 });
 
 app.listen(PORT, () => {
-  console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
