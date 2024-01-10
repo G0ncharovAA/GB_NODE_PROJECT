@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Просмотр отзывов</title>
+  </head>
+  <body>
+    <h1>Просмотр отзывов</h1>
+    <h2>Список продуктов</h2>
+    <ul id="productList"></ul>
+    <div id="reviewList"></div>
+    <a href="js_adv_hw3_add_review.html">Добавить отзыв</a>
+    <script>
+      let reviews = JSON.parse(localStorage.getItem("reviews")) || [];
+
+      function renderProductList() {
+        const productList = document.getElementById("productList");
+        productList.innerHTML = "";
+
+        const products = [
+          ...new Set(reviews.map((review) => review.productName)),
+        ];
+
+        products.forEach((product) => {
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = "#";
+          a.textContent = product;
+          a.addEventListener("click", () => renderReviewsByProduct(product));
+          li.appendChild(a);
+          productList.appendChild(li);
+        });
+      }
+
+      function renderReviewsByProduct(productName) {
+        const reviewList = document.getElementById("reviewList");
+        reviewList.innerHTML = "";
+
+        const selectedReviews = reviews.filter(
+          (review) => review.productName === productName
+        );
+
+        selectedReviews.forEach((review) => {
+          const div = document.createElement("div");
+          div.textContent = review.reviewText;
+
+          const deleteButton = document.createElement("button");
+          deleteButton.textContent = "Удалить";
+          deleteButton.addEventListener("click", () => {
+            reviews = reviews.filter((r) => r !== review);
+            localStorage.setItem("reviews", JSON.stringify(reviews));
+            renderProductList();
+            renderReviewsByProduct(productName);
+          });
+
+          div.appendChild(deleteButton);
+          reviewList.appendChild(div);
+        });
+      }
+
+      renderProductList();
+    </script>
+  </body>
+</html>
